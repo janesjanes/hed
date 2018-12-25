@@ -6,7 +6,7 @@ import numpy as np
 
 class HED(nn.Module):
     """ HED network. """
-    def __init__(self, device):
+    def __init__(self, device,resize=64):
         super(HED, self).__init__()
         # Layers.
         self.conv1_1 = nn.Conv2d(3, 64, 3, padding=35)
@@ -33,6 +33,8 @@ class HED(nn.Module):
         #       in order to have the same shape as the original image. If ceil mode is not used, the up-sampled feature
         #       maps will possibly be smaller than the original images.
         self.maxpool = nn.MaxPool2d(2, stride=2, ceil_mode=True)
+        
+        self.resize = nn.AdaptiveAvgPool2d((resize,resize))
         
         self.score_dsn1 = nn.Conv2d(64, 1, 1)  # Out channels: 1.
         self.score_dsn2 = nn.Conv2d(128, 1, 1)
@@ -177,7 +179,7 @@ class HED(nn.Module):
 
         # Concatenate according to channels.
         fuse_cat = torch.cat((crop1, crop2, crop3, crop4, crop5), dim=1)
-        fuse = self.score_final(fuse_cat)                       # Shape: [batch_size, 1, image_h, image_w].
+        fuse = self.resize(self.score_final(fuse_cat))                     # Shape: [batch_size, 1, image_h, image_w].
         results = [crop1, crop2, crop3, crop4, crop5, fuse]
         results = [torch.sigmoid(r) for r in results]
         return results
